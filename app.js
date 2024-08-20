@@ -1,30 +1,78 @@
+const fs = require("fs");
+const path = require("path");
+const tf = require("@tensorflow/tfjs");
+require("@tensorflow/tfjs-node");
+const { getTrainData } = require("./minstDatasetReader");
+
+let model = tf.sequential();
+
+const size = 280;
+
+const lineWidth = 25;
+
+const blockSize = 10;
+
+const trainData = getTrainData();
+
+const debug = true;
+
+let chart;
+
+async function trainModel() {
+  model = tf.sequential();
+  model.add(
+    tf.layers.dense({
+      inputShape: [784],
+      units: 128,
+      activation: "sigmoid",
+    })
+  );
+
+  model.add(
+    tf.layers.dense({
+      units: 10,
+      activation: "softmax",
+    })
+  );
+
+  model.compile({
+    optimizer: "adam",
+    loss: "categoricalCrossentropy",
+    metrics: ["accuracy"],
+  });
+
+  const inputs = tf.tensor2d(trainData.map((data) => data.input));
+
+  const targets = tf.tensor2d(trainData.map((data) => data.output));
+
+  console.log("Model training started");
+  await model.fit(inputs, targets, {
+    epochs: 100,
+    shuffle: true,
+  });
+
+  console.log("Model training complete");
+}
+
 const canvas = document.getElementById("paintCanvas");
 const ctx = canvas.getContext("2d");
 
 const processedCanvas = document.getElementById("processedCanvas");
 const processedCtx = processedCanvas.getContext("2d");
 
-///////////////////
-// Bind canvas to listeners
 canvas.addEventListener("mousedown", mouseDown, false);
 canvas.addEventListener("mousemove", mouseMove, false);
 canvas.addEventListener("mouseup", mouseUp, false);
-
-const lineWidth = 20;
-
 
 ctx.lineWidth = lineWidth;
 ctx.lineJoin = "round";
 ctx.lineCap = "round";
 
 var started = false;
-var lastx = 0;
-var lasty = 0;
 
-// create an in-memory canvas
 var memCanvas = document.createElement("canvas");
-memCanvas.width = 300;
-memCanvas.height = 300;
+memCanvas.width = size;
+memCanvas.height = size;
 var memCtx = memCanvas.getContext("2d");
 var points = [];
 
@@ -39,8 +87,7 @@ function mouseDown(e) {
 
 function mouseMove(e) {
   if (started) {
-    ctx.clearRect(0, 0, 300, 300);
-    // put back the saved content
+    ctx.clearRect(0, 0, size, size);
     ctx.drawImage(memCanvas, 0, 0);
     var m = getMouse(e, canvas);
     points.push({
@@ -54,18 +101,15 @@ function mouseMove(e) {
 function mouseUp(e) {
   if (started) {
     started = false;
-    // When the pen is done, save the resulting context
-    // to the in-memory canvas
-    memCtx.clearRect(0, 0, 300, 300);
+    memCtx.clearRect(0, 0, size, size);
     memCtx.drawImage(canvas, 0, 0);
     points = [];
   }
 }
 
-// clear both canvases!
 function clear() {
-  context.clearRect(0, 0, 300, 300);
-  memCtx.clearRect(0, 0, 300, 300);
+  context.clearRect(0, 0, size, size);
+  memCtx.clearRect(0, 0, size, size);
 }
 
 function drawPoints(ctx, points) {
@@ -96,11 +140,6 @@ function drawPoints(ctx, points) {
     ctx.stroke();
 }
 
-// Creates an object with x and y defined,
-// set to the mouse position relative to the state's canvas
-// If you wanna be super-correct this can be tricky,
-// we have to worry about padding and borders
-// takes an event and a reference to the canvas
 function getMouse(e, canvas) {
   var element = canvas,
     offsetX = 0,
@@ -108,7 +147,6 @@ function getMouse(e, canvas) {
     mx,
     my;
 
-  // Compute the total offset. It's possible to cache this if you want
   if (element.offsetParent !== undefined) {
     do {
       offsetX += element.offsetLeft;
@@ -119,20 +157,13 @@ function getMouse(e, canvas) {
   mx = e.pageX - offsetX;
   my = e.pageY - offsetY;
 
-  // We return a simple javascript object with x and y defined
   return {
     x: mx,
     y: my,
   };
 }
 
-///////////////////
-
-const blockSize = 30;
-
 function addGridPaintCanvas(blockSize) {
-  console.log("Adding grid");
-
   ctx.beginPath();
 
   ctx.lineWidth = 1;
@@ -157,7 +188,6 @@ function addGridPaintCanvas(blockSize) {
 }
 
 function addGridProcessedCanvas(blockSize) {
-  console.log("Adding grid");
   processedCtx.beginPath();
   processedCtx.strokeStyle = "rgba(0, 0, 0, 0.1)";
   processedCtx.lineWidth = 1;
@@ -186,19 +216,15 @@ function resetProcessedCanvas() {
   addGridProcessedCanvas(blockSize);
 }
 
-function processImage() {
+const processImage = async () => {
   let processedData = [];
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const processedImageData = processedCtx.createImageData(
-    processedCanvas.width,
-    processedCanvas.height
-  );
+
   const width = imageData.width;
   const height = imageData.height;
 
-  for (let y = 0; y < height; y += blockSize) {
-    for (let x = 0; x < width; x += blockSize) {
-      let total = 0;
+  for (let x = 0; x < height; x += blockSize) {
+    for (let y = 0; y < width; y += blockSize) {
       let totalAlpha = 0;
       let count = 0;
 
@@ -206,71 +232,120 @@ function processImage() {
       const startX = x + 1;
       const startY = y + 1;
 
-      for (let dy = 0; dy < innerBlockSize; dy++) {
-        for (let dx = 0; dx < innerBlockSize; dx++) {
+      for (let dx = 0; dx < innerBlockSize; dx++) {
+        for (let dy = 0; dy < innerBlockSize; dy++) {
           const pixelX = startX + dx;
           const pixelY = startY + dy;
           if (pixelX < width && pixelY < height) {
             const index = (pixelY * width + pixelX) * 4;
-            const r = imageData.data[index];
-            const g = imageData.data[index + 1];
-            const b = imageData.data[index + 2];
             const a = imageData.data[index + 3];
-
-            if (x === 0 && y === 0)
-              console.log("R:", r, "G:", g, "B:", b, "A:", a);
-
-            // Calculate the brightness of the pixel (0 to 255)
-            const brightness = (r + g + b) / 3;
-            total += brightness;
             totalAlpha += a;
             count++;
           }
         }
       }
 
-      // Calculate the average brightness in the block (normalized between 0 and 1)
-      const averageBrightness = total / count;
       const averageAlpha = totalAlpha / count;
-      const grayValue = Math.floor(averageBrightness);
 
-      processedData.push(averageAlpha / 255);
-
-      for (let dy = 0; dy < blockSize; dy++) {
-        for (let dx = 0; dx < blockSize; dx++) {
-          const pixelX = x + dx;
-          const pixelY = y + dy;
-          if (
-            pixelX < processedImageData.width &&
-            pixelY < processedImageData.height
-          ) {
-            const index = (pixelY * processedImageData.width + pixelX) * 4;
-            processedImageData.data[index] = grayValue;
-            processedImageData.data[index + 1] = grayValue;
-            processedImageData.data[index + 2] = grayValue;
-            processedImageData.data[index + 3] = averageAlpha;
-          }
-        }
-      }
+      processedData.push(averageAlpha);
     }
   }
 
-  console.log("Processed Data:", processedData);
-  drawProcessedData(processedImageData);
-  console.log("Normalized Data:", processedData);
-}
+  if (debug) console.log("Processed Data:", JSON.stringify(processedData));
 
-const drawProcessedData = (_processedImageData) => {
-  processedCtx.putImageData(_processedImageData, 0, 0);
+  drawProcessedData(processedData);
+
+  await predict(processedData);
+};
+
+const predict = async (_processedData) => {
+  const testInput = tf.tensor2d([_processedData]);
+  const prediction = model.predict(testInput);
+  prediction.print();
+
+  const result = Array.from(prediction.dataSync()).map((x, i) => [
+    i.toString(),
+    x,
+  ]);
+
+  chart.data(result);
+};
+
+const drawProcessedData = (_processedData) => {
+  processedCtx.clearRect(0, 0, processedCanvas.width, processedCanvas.height);
+  for (let x = 0; x < processedCanvas.height; x += blockSize) {
+    for (let y = 0; y < processedCanvas.width; y += blockSize) {
+      const index = (x / blockSize) * (size / blockSize) + y / blockSize;
+      const a = _processedData[index];
+      processedCtx.fillStyle = `rgba(0, 0, 0, ${a / 255})`;
+      console.log(processedCtx.fillStyle);
+      processedCtx.fillRect(x, y, blockSize, blockSize);
+    }
+  }
   addGridProcessedCanvas(blockSize);
 };
 
-window.onload = () => {
+const testModelData = async () => {
+  const digit = document.getElementById("trainModelDigit").value;
+  const index = document.getElementById("trainModelIndex").value;
+  const input = trainData.filter((x) => x.result === digit)[index].input;
+  drawProcessedData(input);
+  predict(input);
+  document.getElementById("trainModelIndex").value = parseInt(index) + 1;
+};
+
+const saveModel = async () => {
+  const modelPath = path.join(__dirname, "models");
+
+  // Ensure the directory exists
+  if (!fs.existsSync(modelPath)) {
+    fs.mkdirSync(modelPath);
+  }
+
+  const backupPath = path.join(__dirname, "models", new Date().toISOString());
+
+  if (fs.existsSync(backupPath)) {
+    fs.rmdirSync(backupPath);
+  }
+
+  const saveResults = await model.save(`file://${modelPath}`);
+  await model.save(`file://${backupPath}`);
+  console.log("Model saved:", saveResults);
+};
+
+const loadModel = async () => {
+  const modelPath = path.join(__dirname, "models", "model.json");
+
+  if (fs.existsSync(modelPath)) {
+    const loadedModel = await tf.loadLayersModel(`file://${modelPath}`);
+    console.log("Model loaded:", loadedModel);
+    return loadedModel;
+  } else {
+    console.log("Model not found.");
+    return null;
+  }
+};
+
+window.onload = async () => {
   addGridPaintCanvas(blockSize);
   addGridProcessedCanvas(blockSize);
+  //if exists load model if not train model
+  let loadedModel = await loadModel();
+  if (loadedModel) model = loadedModel;
+  else await trainModel();
+
+  chart = anychart.bar([]);
+  chart.title("Results");
+  chart.container("chart");
+  chart.draw();
 };
 
 document.getElementById("processImage").addEventListener("click", processImage);
 document
   .getElementById("resetImage")
   .addEventListener("click", resetPaintCanvas);
+document.getElementById("saveModel").addEventListener("click", saveModel);
+document.getElementById("trainModel").addEventListener("click", trainModel);
+document
+  .getElementById("testModelData")
+  .addEventListener("click", testModelData);
