@@ -4,28 +4,141 @@ const ctx = canvas.getContext("2d");
 const processedCanvas = document.getElementById("processedCanvas");
 const processedCtx = processedCanvas.getContext("2d");
 
-let painting = false;
-let lastPos = { x: 0, y: 0 };
+///////////////////
+// Bind canvas to listeners
+canvas.addEventListener("mousedown", mouseDown, false);
+canvas.addEventListener("mousemove", mouseMove, false);
+canvas.addEventListener("mouseup", mouseUp, false);
+
+const lineWidth = 20;
+
+
+ctx.lineWidth = lineWidth;
+ctx.lineJoin = "round";
+ctx.lineCap = "round";
+
+var started = false;
+var lastx = 0;
+var lasty = 0;
+
+// create an in-memory canvas
+var memCanvas = document.createElement("canvas");
+memCanvas.width = 300;
+memCanvas.height = 300;
+var memCtx = memCanvas.getContext("2d");
+var points = [];
+
+function mouseDown(e) {
+  var m = getMouse(e, canvas);
+  points.push({
+    x: m.x,
+    y: m.y,
+  });
+  started = true;
+}
+
+function mouseMove(e) {
+  if (started) {
+    ctx.clearRect(0, 0, 300, 300);
+    // put back the saved content
+    ctx.drawImage(memCanvas, 0, 0);
+    var m = getMouse(e, canvas);
+    points.push({
+      x: m.x,
+      y: m.y,
+    });
+    drawPoints(ctx, points);
+  }
+}
+
+function mouseUp(e) {
+  if (started) {
+    started = false;
+    // When the pen is done, save the resulting context
+    // to the in-memory canvas
+    memCtx.clearRect(0, 0, 300, 300);
+    memCtx.drawImage(canvas, 0, 0);
+    points = [];
+  }
+}
+
+// clear both canvases!
+function clear() {
+  context.clearRect(0, 0, 300, 300);
+  memCtx.clearRect(0, 0, 300, 300);
+}
+
+function drawPoints(ctx, points) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  addGridPaintCanvas(blockSize);
+  // draw a basic circle instead
+  if (points.length < 6) {
+    var b = points[0];
+    ctx.beginPath(),
+      ctx.arc(b.x, b.y, ctx.lineWidth / 2, 0, Math.PI * 2, !0),
+      ctx.closePath(),
+      ctx.fill();
+    return;
+  }
+  ctx.beginPath(), ctx.moveTo(points[0].x, points[0].y);
+  // draw a bunch of quadratics, using the average of two points as the control point
+  for (i = 1; i < points.length - 2; i++) {
+    var c = (points[i].x + points[i + 1].x) / 2,
+      d = (points[i].y + points[i + 1].y) / 2;
+    ctx.quadraticCurveTo(points[i].x, points[i].y, c, d);
+  }
+  ctx.quadraticCurveTo(
+    points[i].x,
+    points[i].y,
+    points[i + 1].x,
+    points[i + 1].y
+  ),
+    ctx.stroke();
+}
+
+// Creates an object with x and y defined,
+// set to the mouse position relative to the state's canvas
+// If you wanna be super-correct this can be tricky,
+// we have to worry about padding and borders
+// takes an event and a reference to the canvas
+function getMouse(e, canvas) {
+  var element = canvas,
+    offsetX = 0,
+    offsetY = 0,
+    mx,
+    my;
+
+  // Compute the total offset. It's possible to cache this if you want
+  if (element.offsetParent !== undefined) {
+    do {
+      offsetX += element.offsetLeft;
+      offsetY += element.offsetTop;
+    } while ((element = element.offsetParent));
+  }
+
+  mx = e.pageX - offsetX;
+  my = e.pageY - offsetY;
+
+  // We return a simple javascript object with x and y defined
+  return {
+    x: mx,
+    y: my,
+  };
+}
+
+///////////////////
+
 const blockSize = 30;
-
-function startPosition(e) {
-  painting = true;
-  lastPos = getMousePos(canvas, e);
-  draw(e);
-}
-
-function endPosition() {
-  painting = false;
-  ctx.beginPath();
-}
 
 function addGridPaintCanvas(blockSize) {
   console.log("Adding grid");
+
   ctx.beginPath();
-  ctx.strokeStyle = "rgba(0, 0, 0, 0.1)";
+
   ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.1;
+  ctx.lineJoin = "round";
   ctx.lineCap = "round";
-  ctx.globalAlpha = 1;
 
   for (let x = 0; x < canvas.width; x += blockSize) {
     ctx.moveTo(x, 0);
@@ -36,8 +149,11 @@ function addGridPaintCanvas(blockSize) {
     ctx.lineTo(canvas.width, y);
   }
   ctx.stroke();
-  ctx.lineWidth = 15;
+
+  ctx.lineWidth = lineWidth;
+  ctx.lineJoin = "round";
   ctx.lineCap = "round";
+  ctx.globalAlpha = 1;
 }
 
 function addGridProcessedCanvas(blockSize) {
@@ -58,55 +174,6 @@ function addGridProcessedCanvas(blockSize) {
   }
   processedCtx.stroke();
 }
-
-function draw(e) {
-  if (!painting) return;
-
-  const mousePos = getMousePos(canvas, e);
-  ctx.lineWidth = 15;
-  ctx.lineCap = "round";
-
-  const dist = distanceBetween(lastPos, mousePos);
-  const angle = angleBetween(lastPos, mousePos);
-
-  for (let i = 0; i < dist; i++) {
-    const x = lastPos.x + Math.sin(angle) * i;
-    const y = lastPos.y + Math.cos(angle) * i;
-    ctx.globalAlpha = 1;
-
-    const offsetX = Math.random() * 10 - 5;
-    const offsetY = Math.random() * 10 - 5;
-
-    ctx.beginPath();
-    ctx.moveTo(x + offsetX, y + offsetY);
-    ctx.lineTo(x + offsetX, y + offsetY);
-    ctx.stroke();
-  }
-
-  lastPos = mousePos;
-}
-
-function getMousePos(canvas, evt) {
-  const rect = canvas.getBoundingClientRect();
-  return {
-    x: evt.clientX - rect.left,
-    y: evt.clientY - rect.top,
-  };
-}
-
-function distanceBetween(point1, point2) {
-  return Math.sqrt(
-    Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y, 2)
-  );
-}
-
-function angleBetween(point1, point2) {
-  return Math.atan2(point2.x - point1.x, point2.y - point1.y);
-}
-
-canvas.addEventListener("mousedown", startPosition);
-canvas.addEventListener("mouseup", endPosition);
-canvas.addEventListener("mousemove", draw);
 
 function resetPaintCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -192,13 +259,6 @@ function processImage() {
   drawProcessedData(processedImageData);
   console.log("Normalized Data:", processedData);
 }
-
-const normalizeData = (data) => {
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const normalizedData = data.map((value) => (value - min) / (max - min));
-  return normalizedData;
-};
 
 const drawProcessedData = (_processedImageData) => {
   processedCtx.putImageData(_processedImageData, 0, 0);
