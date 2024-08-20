@@ -5,16 +5,75 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Paint App</title>
   <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+    }
+
+    #appContainer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      font-size: 24px;
+      color: #333;
+    }
+
     canvas {
-      border: 1px solid black;
+      border: 2px solid #000;
+      margin-bottom: 20px;
+    }
+
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      color: #fff;
+      background-color: #007bff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    button:focus {
+      outline: none;
+    }
+
+    #buttonContainer {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
     }
   </style>
 </head>
 <body>
-  <canvas id="paintCanvas" width="300" height="300"></canvas>
-  <button id="processImage">Process Image</button>
-  <button id="resetImage">Reset Image</button>
-  <canvas id="processedCanvas" width="300" height="300"></canvas>
+  <div id="appContainer">
+    <h1>Paint App</h1>
+    <canvas id="paintCanvas" width="300" height="300"></canvas>
+    <div id="buttonContainer">
+      <button id="processImage">Process Image</button>
+      <button id="resetImage">Reset Image</button>
+    </div>
+    <canvas id="processedCanvas" width="300" height="300"></canvas>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>

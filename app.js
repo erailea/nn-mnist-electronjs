@@ -6,7 +6,7 @@ const processedCtx = processedCanvas.getContext("2d");
 
 let painting = false;
 let lastPos = { x: 0, y: 0 };
-const blockSize = 30;
+const blockSize = 50;
 
 let processedData = [];
 
@@ -21,9 +21,13 @@ function endPosition() {
   ctx.beginPath();
 }
 
-function addGrid(blockSize) {
+function addGridPaintCanvas(blockSize) {
+  console.log("Adding grid");
+  ctx.beginPath();
   ctx.strokeStyle = "rgba(0, 0, 0, 0.1)";
   ctx.lineWidth = 1;
+  ctx.lineCap = "round";
+  ctx.globalAlpha = 1;
 
   for (let x = 0; x < canvas.width; x += blockSize) {
     ctx.moveTo(x, 0);
@@ -34,7 +38,27 @@ function addGrid(blockSize) {
     ctx.lineTo(canvas.width, y);
   }
   ctx.stroke();
-  ctx.strokeStyle = "black";
+  ctx.lineWidth = 15;
+  ctx.lineCap = "round";
+}
+
+function addGridProcessedCanvas(blockSize) {
+  console.log("Adding grid");
+  processedCtx.beginPath();
+  processedCtx.strokeStyle = "rgba(0, 0, 0, 0.1)";
+  processedCtx.lineWidth = 1;
+  processedCtx.lineCap = "round";
+  processedCtx.globalAlpha = 1;
+
+  for (let x = 0; x < canvas.width; x += blockSize) {
+    processedCtx.moveTo(x, 0);
+    processedCtx.lineTo(x, canvas.height);
+  }
+  for (let y = 0; y < canvas.height; y += blockSize) {
+    processedCtx.moveTo(0, y);
+    processedCtx.lineTo(canvas.width, y);
+  }
+  processedCtx.stroke();
 }
 
 function draw(e) {
@@ -50,7 +74,7 @@ function draw(e) {
   for (let i = 0; i < dist; i++) {
     const x = lastPos.x + Math.sin(angle) * i;
     const y = lastPos.y + Math.cos(angle) * i;
-    ctx.globalAlpha = 0.2;
+    ctx.globalAlpha = 0.7;
 
     const offsetX = Math.random() * 10 - 5;
     const offsetY = Math.random() * 10 - 5;
@@ -88,12 +112,13 @@ canvas.addEventListener("mousemove", draw);
 
 function resetPaintCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  addGrid(blockSize);
+  addGridPaintCanvas(blockSize);
   resetProcessedCanvas();
 }
 
 function resetProcessedCanvas() {
   processedCtx.clearRect(0, 0, processedCanvas.width, processedCanvas.height);
+  addGridProcessedCanvas(blockSize);
 }
 
 function processImage() {
@@ -103,7 +128,6 @@ function processImage() {
     processedCanvas.width,
     processedCanvas.height
   );
-  const blockSize = 30;
   const width = imageData.width;
   const height = imageData.height;
 
@@ -164,11 +188,13 @@ function processImage() {
   }
 
   processedCtx.putImageData(processedImageData, 0, 0);
+  addGridProcessedCanvas(blockSize);
   console.log("Processed Data:", processedData);
 }
 
 window.onload = () => {
-  addGrid(blockSize);
+  addGridPaintCanvas(blockSize);
+  addGridProcessedCanvas(blockSize);
 };
 
 document.getElementById("processImage").addEventListener("click", processImage);
