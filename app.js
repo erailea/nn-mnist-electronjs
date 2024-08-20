@@ -6,9 +6,7 @@ const processedCtx = processedCanvas.getContext("2d");
 
 let painting = false;
 let lastPos = { x: 0, y: 0 };
-const blockSize = 50;
-
-let processedData = [];
+const blockSize = 30;
 
 function startPosition(e) {
   painting = true;
@@ -74,7 +72,7 @@ function draw(e) {
   for (let i = 0; i < dist; i++) {
     const x = lastPos.x + Math.sin(angle) * i;
     const y = lastPos.y + Math.cos(angle) * i;
-    ctx.globalAlpha = 0.7;
+    ctx.globalAlpha = 1;
 
     const offsetX = Math.random() * 10 - 5;
     const offsetY = Math.random() * 10 - 5;
@@ -122,7 +120,7 @@ function resetProcessedCanvas() {
 }
 
 function processImage() {
-  processedData = [];
+  let processedData = [];
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const processedImageData = processedCtx.createImageData(
     processedCanvas.width,
@@ -152,6 +150,9 @@ function processImage() {
             const b = imageData.data[index + 2];
             const a = imageData.data[index + 3];
 
+            if (x === 0 && y === 0)
+              console.log("R:", r, "G:", g, "B:", b, "A:", a);
+
             // Calculate the brightness of the pixel (0 to 255)
             const brightness = (r + g + b) / 3;
             total += brightness;
@@ -166,7 +167,7 @@ function processImage() {
       const averageAlpha = totalAlpha / count;
       const grayValue = Math.floor(averageBrightness);
 
-      processedData.push((255 - averageAlpha) / 255);
+      processedData.push(averageAlpha / 255);
 
       for (let dy = 0; dy < blockSize; dy++) {
         for (let dx = 0; dx < blockSize; dx++) {
@@ -187,10 +188,22 @@ function processImage() {
     }
   }
 
-  processedCtx.putImageData(processedImageData, 0, 0);
-  addGridProcessedCanvas(blockSize);
   console.log("Processed Data:", processedData);
+  drawProcessedData(processedImageData);
+  console.log("Normalized Data:", processedData);
 }
+
+const normalizeData = (data) => {
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const normalizedData = data.map((value) => (value - min) / (max - min));
+  return normalizedData;
+};
+
+const drawProcessedData = (_processedImageData) => {
+  processedCtx.putImageData(_processedImageData, 0, 0);
+  addGridProcessedCanvas(blockSize);
+};
 
 window.onload = () => {
   addGridPaintCanvas(blockSize);
