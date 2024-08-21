@@ -17,96 +17,129 @@
 
       #appContainer {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
-        padding: 20px;
+        padding: 4px;
         background-color: #fff;
         border: 1px solid #ccc;
         border-radius: 10px;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
       }
 
       h1 {
         margin-bottom: 20px;
-        font-size: 24px;
+        font-size: 26px; /* Slightly smaller font size for better fit */
         color: #333;
       }
 
       canvas {
-        border: 2px solid #000;
+        border: 2px solid #007bff;
+        border-radius: 5px;
         margin-bottom: 20px;
+        background-color: #e0e0e0;
       }
 
-      button {
-        margin: 2px;
-        padding: 4px 8px;
+      button,
+      input {
+        margin: 5px;
+        padding: 10px 16px;
         font-size: 16px;
-        color: #fff;
-        background-color: #007bff;
-        border: none;
-        border-radius: 8px;
+        color: #333;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        border-radius: 5px;
         cursor: pointer;
+        min-width: 195px;
         transition: background-color 0.3s;
       }
 
-      input {
-        margin: 2px;
-        padding: 4px 8px;
-        font-size: 16px;
-        color: #333;
-        width: 64px;
-        background-color: #fff;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        transition: border-color 0.3s;
-      }
-
       button:hover {
+        color: #fff;
         background-color: #0056b3;
       }
 
-      button:focus {
+      button:focus,
+      input:focus {
         outline: none;
+        border-color: #007bff;
       }
 
-      #imageOperationsContainer #modelTrainingContainer #testModelContainer {
+      #img-ops-panel,
+      #model-ops-panel,
+      #test-ops-panel {
         display: flex;
         justify-content: center;
-        margin-bottom: 20px;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+
+      #processedCanvas {
+        margin-top: 20px;
+      }
+
+      #chart {
+        width: 100%;
+        height: 300px; /* Adjusted height for better fit */
+        margin-top: 20px;
+      }
+
+      .container {
+        margin: 0 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      .row > div {
+        margin: 0 10px;
       }
     </style>
   </head>
   <body>
     <div id="appContainer">
-      <h1>Paint App</h1>
-      <canvas id="paintCanvas" width="280" height="280"></canvas>
-      <div id="imageOperationsContainer">
-        <button id="processImage">Process Image</button>
-        <button id="resetImage">Reset Image</button>
+      <div class="container">
+        <canvas id="paintCanvas" width="280" height="280"></canvas>
+        <canvas id="processedCanvas" width="280" height="280"></canvas>
       </div>
-      <div id="modelTrainingContainer">
-        <button id="saveModel">Save Model</button>
-        <button id="trainModel">Train Model</button>
+      <div class="container">
+        <div id="img-ops-panel" class="row">
+          <button id="processImage">Process Image</button>
+          <button id="resetImage">Reset Image</button>
+        </div>
+        <div id="model-ops-panel" class="row">
+          <button id="saveModel">Save Model</button>
+          <button id="trainModel">Train Model</button>
+        </div>
+        <div id="test-ops-panel" class="row">
+          <input
+            width="100%"
+            type="number"
+            id="trainModelIndex"
+            placeholder="Sample Train Data Index"
+          />
+        </div>
+        <div id="test-ops-panel" class="row">
+          <input
+            width="100%"
+            type="number"
+            id="trainModelDigit"
+            placeholder="Sample Train Data Digit"
+          />
+        </div>
+        <div id="test-ops-panel" class="row">
+          <button id="testModelData">Test With Train Data</button>
+        </div>
+        <div id="chart"></div>
       </div>
-      <div id="testModelContainer">
-        <input
-          type="number"
-          id="trainModelIndex"
-          placeholder="Train Model Index"
-          value="4"
-        />
-        <input
-          type="number"
-          id="trainModelDigit"
-          placeholder="Train Model Digit"
-          value="4"
-        />
-        <button id="testModelData">Test Model Data</button>
-      </div>
-      <canvas id="processedCanvas" width="280" height="280"></canvas>
-    </div>
-    <div>
-      <div id="chart" style="width: 500px; height: 400px"></div>
     </div>
     <script
       src="https://cdn.anychart.com/releases/v8/js/anychart-base.min.js"
